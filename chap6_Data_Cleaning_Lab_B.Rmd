@@ -1,0 +1,68 @@
+---
+title: "chapter 6 Data Cleaning & apply Lab B"
+author: "Odlin Montila"
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+#### 1. Loop practice
+
+**(a)** Write a function called `calculateRowMeans` that uses a **for loop** to calculate the row means of a matrix `x`.
+
+```{r}
+calculateRowMeans <- function(x) {
+  row.means <- numeric(nrow(x))
+  for(i in 1:nrow(x)) {
+    row.means[i] <- mean(x[i,])
+  }
+  row.means
+}
+```
+
+**(b)** Try out your function on the random matrix `fake.data` defined below.
+
+```{r}
+set.seed(12345) # Set seed of random number generator
+fake.data <- matrix(runif(800), nrow=25)
+```
+
+**(b)** Use the `apply()` function to calculate the row means of the matrix `fake.data`
+
+```{r}
+apply(fake.data, MARGIN=1, FUN=mean)
+```
+
+**(c)** Compare this to the output of the `rowMeans()` function to check that your calculation is correct.
+
+```{r}
+identical(calculateRowMeans(fake.data), apply(fake.data, MARGIN=1, FUN=mean))
+```
+
+#### 2. tapply() practice
+
+Use `tapply()` on the Cars93 data set to create a table showing the average `Turn.circle` of cars, broken down by vehicle `Type` and `DriveTrain`
+
+```{r}
+library(MASS) 
+with(Cars93, tapply(Turn.circle, INDEX = list(Type, DriveTrain), FUN=mean))
+```
+
+#### 3. with() practice
+
+```{r}
+library(MASS) # Load the library that Cars93 is in
+```
+
+Below is a code chunk that produces box plots of Horsepower against vehicle Type.  
+
+```{r, fig.align='center', fig.width=7, fig.height=5}
+boxplot(Cars93$Horsepower ~ Cars93$Type)
+```
+
+Use the `with()` function to produce the same plot with different syntax.
+
+```{r, fig.align='center', fig.width=7, fig.height=5}
+with(Cars93, boxplot(Horsepower ~ Type))
+
+```

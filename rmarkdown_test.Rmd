@@ -1,0 +1,59 @@
+---
+title: "Rmarkdown_practice"
+author: "Odlin"
+date: "January 23, 2018"
+output: html_document
+---
+
+#Data
+##Data
+###Data
+
+The` atmos` data set resides in the `nasaweather` package of the R programming language
+
+Some of the variables in the `atmos` s data set are:
+
+* **temp** - The mean monthly air temperature near the surface of the Earth (measured in degrees kelvin (K))
+
+* **pressure** - The mean monthly air pressure at the surface of the Earth (measured in millibars (mb))
+
+* **ozone** - The mean monthly abundance of atmospheric ozone (measured in Dobson units (DU))
+
+$$fahrenheit=celsius \times \frac{9}{5}+32$$
+```{r}
+library(nasaweather)
+library(dplyr)
+library(ggvis)
+
+```
+
+
+##Prepare Data
+```{r}
+# The nasaweather and dplyr packages are available in the workspace
+
+# Set the year variable to 1995
+year <- 1995
+
+means <- atmos %>%
+  filter(year == year) %>%
+  group_by(long, lat) %>%
+  summarize(temp = mean(temp, na.rm = TRUE),
+         pressure = mean(pressure, na.rm = TRUE),
+         ozone = mean(ozone, na.rm = TRUE),
+         cloudlow = mean(cloudlow, na.rm = TRUE),
+         cloudmid = mean(cloudmid, na.rm = TRUE),
+         cloudhigh = mean(cloudhigh, na.rm = TRUE)) %>%
+  ungroup()
+
+# Inspect the means variable
+
+means
+```
+```{r}
+summary(cars$dist)
+```
+```{r fi.height=3,fig.width=4}
+plot(cars$dist,cars$speed)
+```
+

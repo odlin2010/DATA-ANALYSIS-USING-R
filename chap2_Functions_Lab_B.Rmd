@@ -1,0 +1,105 @@
+---
+title: "chapter2 Functions Lab B"
+author: "Odlin Montila"
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+For the first two problems we'll use the Cars93 data set from the MASS library.
+
+```{r}
+library(MASS)
+head(Cars93)
+```
+
+#### 1. Manipulating data frames
+
+Use the `transform()` and `log()` functions to create a new data frame called `Cars93.log` that has `MPG.highway` and `MPG.city` replaced with `log(MPG.highway)` and `log(MPG.city)`.
+
+```{r}
+t=transform(Cars93,MPG.highway=log(MPG.highway),MPG.city=log(MPG.city))
+head(t)
+```
+
+#### 2. Table function
+
+Use the `table()` function to tabulate the data by DriveTrain and Origin.  
+
+```{r}
+table( Cars93$Origin, Cars93$DriveTrain )
+```
+
+
+#### 3. Functions, lists, and if-else practice
+
+**(a)** Write a function called `isPassingGrade` whose input `x` is a number, and which returns `FALSE` if `x` is lower than 50 and `TRUE` otherwise.
+
+```{r}
+isPassingGrade <- function(x){
+  if (x<50)
+    {
+    Result <- "FALSE"
+    }
+     else
+    {
+    Result <- "TRUE"
+  }
+  return(Result)
+
+  }
+```
+
+**(b)** Write a function called `sendMessage` whose input `x` is a number, and which prints `Congratulations` if `isPassingGrade(x)` is `TRUE` and prints `Oh no!` if `isPassingGrade(x)` is `FALSE`.
+
+```{r}
+sendMessage <- function(x){
+   if (isPassingGrade(x)=="TRUE")
+       {
+     return("Congratulations")
+   }
+  else
+  {
+    return("Oh no!")
+  }
+}
+```
+
+**(c)** Write a function called `gradeSummary` whose input `x` is a number.  Your function will return a list with two elements, named `letter.grade` and `passed`.  The letter grade will be `"A"` if `x` is at least `90`.  The letter grade will be `"B"` if `x` is between `80` and `90`.  The letter grade will be `"F"` if `x` is lower than `"80"`.  If the student's letter grade is an A or B, `passed` should be TRUE; `passed` should be FALSE otherwise.
+
+```{r}
+gradeSummary <- function(x){
+
+  
+  if(x>=90)
+  {
+  letter.grade <- "A"
+  passed <- "TRUE"
+  }
+  else if (x>=80)
+  {
+  letter.grade <- "B"
+  passed <- "TRUE"
+  }
+  else
+  {
+  letter.grade <- "F"
+  passed <- "FALSE"
+  }
+  
+ summary.list <- list (letter.grade=letter.grade,passed=passed)
+ return(summary.list)
+}
+```
+
+To check if your function works, try the following cases:
+
+`x = 91` should return 
+```{r, echo = FALSE}
+list(letter.grade = "A", passed = TRUE)
+```
+
+`x = 62` should return 
+```{r, echo = FALSE}
+list(letter.grade = "F", passed = FALSE)
+```
