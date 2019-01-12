@@ -1,0 +1,568 @@
+---
+title: Note 14 - BASIC DATA VISUALIZATION
+author: MA
+date: Spring 18
+output: 
+  html_document:
+    toc: true
+    toc_depth: 5
+    fig_width: 5
+    fig_height: 5
+---
+
+## Barplots and Pie Charts
+Barplots and pie charts are commonly used to visualize **qualitative data by category frequency**. 
+
+
+### Building a Barplot
+A barplot draws either vertical or horizontal bars, typically separated by white
+space, to visualize frequencies according to the relevant categories. 
+
+Barplot can also
+be used to visualize other quantities, such as means or proportions, which
+directly depend upon these frequencies.
+As an example, let's use the `mtcars` data set  Detailing various characteristics of 32 classic performance cars in
+the mid-1970s, the first five records can be viewed directly from the prompt.
+
+```{r}
+mtcars[1:5,]
+```
+
+The documentation in `?mtcars` explains the variables that have been
+recorded. Of these, `cyl` provides the number of cylinders in each engine-
+four, six, or eight. To find out how many cars were observed with each number of cylinders, you can use table, as shown here:
+```{r}
+cyl.freq <- table(mtcars$cyl)
+cyl.freq
+```
+
+
+The result is easily displayed as a barplot, as shown here:
+```{r}
+barplot(cyl.freq) 
+```
+
+This plot displays the number of four-, six-, and eight-cylinder cars in the
+data set but is admittedly rather uninteresting, and without annotations it's
+not clear what's being summarized. Fortunately, it's easy to annotate such
+plots and further split up the frequencies of each bar according to an additional
+categorical variable. Consider the following code where, this time,
+you're finding the counts associated with `cyl` by transmission `(am)`:
+
+```{r}
+table(mtcars$cyl[mtcars$am==0])
+table(mtcars$cyl[mtcars$am==1])
+```
+
+
+If you aim to produce a barplot that's `stacked` (where bars are split up
+vertically) or `dodged` (where bars are broken up and placed beside each
+other), `barplot` requests its first argument as a suitably arranged matrix. You
+could construct it from the previous two vectors using matrix, but it's easier
+to just continue using `table`.
+
+```{r}
+cyl.freq.matrix <- table(mtcars$am,mtcars$cyl)
+cyl.freq.matrix
+```
+
+```{r}
+barplot(cyl.freq.matrix,beside=TRUE,horiz=TRUE,las=1,
+main="Performance car counts\nby transmission and cylinders",
+names.arg=c("V4","V6","V8"),legend.text=c("auto","manual"),
+args.legend=list(x="bottomright"))
+```
+
+The help file `?barplot` explains the options here in detail. To label the
+bars according to the categories of the column variable of the matrix that
+was initially passed to barplot, you use a character vector of the appropriate
+length passed to `names.arg`. The options `beside=TRUE` and `horiz=TRUE` select a
+dodged, horizontal barplot. If both options were FALSE, a stacked, vertical
+barplot would be selected. The argument `las=1` forces the labels on the vertical
+axis to appear horizontally, rather than parallel to it. The final two arguments,
+`legend.text` and `args.legend`, are used for the legend.
+
+
+Similar plots may be produced using `ggplot2`. If you load the installed
+package with `library("ggplot2")`
+
+```{r}
+library("ggplot2")
+
+qplot(factor(mtcars$cyl),geom="bar")
+```
+
+```{r}
+qplot(factor(mtcars$cyl),geom="blank",fill=factor(mtcars$am), xlab="",
+ylab="",main="Performance car counts\nby transmission and cylinders") + 
+  geom_bar(position="dodge") +
+  scale_x_discrete(labels=c("V4","V6","V8")) +
+  scale_y_continuous(breaks=seq(0,12,2)) + 
+  theme_bw() + coord_flip() +
+  scale_fill_grey(name="Trans.",labels=c("auto","manual"))
+```
+
+
+###A Quick Pie Chart
+
+The venerable `pie chart` is an alternative option for visualizing frequency-based
+quantities across levels of categorical variables, with appropriately
+sized "slices" representing the relative counts of each categorical variable.
+```{r}
+pie(table(mtcars$cyl),labels=c("V4","V6","V8"),
+col=c("white","gray","black"),main="Performance cars by cylinders")
+```
+
+###Histograms
+
+The `barplot` is intuitively sensible for counting observations in relation to
+categorical variables but is of virtually no use if the variable you're interested
+in is numeric-continuous. To visualize the distribution of continuous measurements,
+you can use a `histogram`-a tool that's sometimes confused with
+a barplot owing to its similar appearance. A `histogram` also measures frequencies,
+but in targeting a numeric-continuous variable, it's first necessary
+to "bin" the observed data, meaning to define intervals and then count the
+number of continuous observations that fall within each one. The size of this
+interval is known as the `binwidth`.
+For a simple example of a `histogram`, consider the horsepower data of
+the 32 cars in `mtcars`, given in the fourth column, named `hp`.
+
+```{r}
+mtcars$hp
+```
+
+```{r}
+hist(mtcars$hp)
+```
+
+
+The accuracy of a histogram as a representation of the shape of a distribution
+of measurements depends solely upon the widths of the intervals
+used to bin the data. Binwidths are controlled in hist by the breaks argument.
+You can manually set these by supplying a vector, giving each breakpoint,
+to breaks. This is done in the following code by halving the width of
+each bin from 50 to 25 and widening the overall range somewhat, using an
+evenly spaced sequence.
+
+```{r}
+hist(mtcars$hp,breaks=seq(0,400,25),col="gray",main="Horsepower",xlab="HP")
+
+abline(v=c(mean(mtcars$hp),median(mtcars$hp)),lty=c(2,3),lwd=2)
+
+legend("topright",legend=c("mean HP","median HP"),lty=c(2,3),lwd=2)
+```
+
+So, rather than defaulting to a data-driven algorithm such as hist,
+ggplot2 encourages users to become aware of the issue and actively set their
+own binwidths.
+
+```{r}
+qplot(mtcars$hp,geom="blank",main="Horsepower",xlab="HP") +
+  geom_histogram(color="black",fill="white",breaks=seq(0,400,25), closed="right") +
+  geom_vline(mapping=aes(xintercept=c(mean(mtcars$hp),median(mtcars$hp)), linetype=factor(c("mean","median"))),show.legend=TRUE) + 
+  scale_linetype_manual(values=c(2,3)) +
+  labs(linetype="")
+```
+
+
+###Box-and-Whisker Plots
+An especially popular alternative to the histogram is the box-and-whisker plot,
+or simply boxplot for short. This is merely a visual representation of the fivenumber
+summary.
+
+
+Let's return to the built-in quakes data frame of the 1,000 seismic events near
+Fiji. For the sake of comparison, you can examine both a histogram and a
+boxplot of the magnitudes of these events using default base R behavior.
+
+```{r}
+hist(quakes$mag)
+boxplot(quakes$mag)
+
+```
+
+Like the histogram, a boxplot shows important features of the distribution,
+such as global (in other words, overall) centrality, spread, and skewness.
+
+###Side-by-Side Boxplots
+One particularly pleasing aspect of these plots is the ease with which you
+can compare the five-number summary distributions of different groups
+with side-by-side boxplots. Again using the quakes data, define the following
+corresponding factor and inspect the first five elements
+
+```{r}
+stations.fac <- cut(quakes$stations,breaks=c(0,50,100,150))
+stations.fac[1:5]
+```
+
+Recall that the stations variable records how many monitoring stations
+detected each event. This code has produced a factor breaking up these
+observations into one of three groups-events detected by 50 stations or
+fewer, between 51 and 100 stations, and between 101 and 150 stations. Thus,
+you can compare the distributions of the magnitudes of the events according
+to these three groups
+
+```{r}
+boxplot(quakes$mag~stations.fac,
+xlab="# stations detected",ylab="Magnitude",col="gray")
+```
+
+Turning to ggplot2 functionality, qplot can produce the same type of plot
+easily,
+```{r}
+qplot(stations.fac,quakes$mag,geom="boxplot",
+xlab="# stations detected",ylab="Magnitude")
+```
+
+
+###Scatterplots
+A scatterplot is most frequently used to identify a relationship between the
+observed values of two different numeric-continuous variables, displayed as
+x-y coordinate plots. The coordinate-wise nature of base R graphics lends
+itself naturally to the creation of scatterplots
+
+the famous iris data. Collected in the mid-
+1930s, this data frame of 150 rows and 5 columns consists of petal and sepal
+measurements for three species of perennial iris flowers-Iris setosa, Iris virginica,
+and Iris versicolor (Anderson, 1935; Fisher, 1936). You can view the
+first five records here:
+
+```{r}
+iris[1:5,]
+```
+
+Single Plot
+You can modify a simple scatterplot to split the plotted points according to a
+categorical variable, exposing potential differences between any visible relationships
+with respect to the continuous variables. For example, using base
+R graphics, you can examine the petal measurements according to the three
+species.
+
+you can manually build up this plot by first using type="n" to generate an
+empty plotting region of the correct dimensions and subsequently adding
+the points corresponding to each species, altering point character and color
+as desired.
+
+```{r}
+plot(iris[,4],iris[,3],type="n",xlab="Petal Width (cm)",
+ylab="Petal Length (cm)")
+
+points(iris[iris$Species=="setosa",4],
+iris[iris$Species=="setosa",3],pch=19,col="black")
+points(iris[iris$Species=="virginica",4],
+iris[iris$Species=="virginica",3],pch=19,col="gray")
+points(iris[iris$Species=="versicolor",4],
+iris[iris$Species=="versicolor",3],pch=1,col="black")
+legend("topleft",legend=c("setosa","virginica","versicolor"),
+col=c("black","gray","black"),pch=c(19,19,1))
+```
+
+Note that the Iris virginica
+species has the largest petals, followed by Iris versicolor, and the smallest
+petals belong to Iris setosa. However, this code, while functional, is fairly
+cumbersome. You can generate the same image more simply by first setting
+up vectors that specify the desired point character and color for each individual
+observation.
+
+###Matrix of Plots
+The "single" type of planar scatterplot is really useful only when comparing
+two numeric-continuous variables. When there are more continuous variables
+of interest, it isn't possible to display this information satisfactorily on
+a single plot. A simple and common solution is to generate a two-variable
+scatterplot for each pair of variables and show them together in a structured
+way; this is referred to as a scatterplot matrix. Making use of the iris_pch and
+iris_col vectors created earlier, you can generate a scatterplot matrix for all
+four continuous variables in iris, retaining the distinction between species.
+Working with base R graphics, use the pairs function.
+```{r}
+iris_pch <- rep(19,nrow(iris))
+iris_pch[iris$Species=="versicolor"] <- 1
+
+iris_col <- rep("black",nrow(iris))
+iris_col[iris$Species=="virginica"] <- "gray"
+
+
+pairs(iris[,1:4],pch=iris_pch,col=iris_col,cex=0.75)
+```
+
+or
+
+```{r}
+library("GGally")
+
+ggpairs(iris,mapping=aes(col=Species),axisLabels="internal")
+```
+
+ggpairs offers an impressive visual array for such a short line of code.
+The output not only gives you the lower half of the scatterplot matrix produced
+with pairs but also provides equivalent histograms along the bottom
+and boxplots along the right. It also displays the estimates of the correlation
+coefficients.
+
+
+##Additinal examples of Basic graphs
+
+In the following examples, you'll plot the outcome of a study investigating a new
+treatment for rheumatoid arthritis. The data are contained in the Arthritis data
+frame distributed with the vcd package.
+
+In the Arthritis study, the variable Improved records the patient outcomes for individuals
+receiving a placebo or drug:
+```{r}
+library(vcd)
+counts <- table(Arthritis$Improved)
+counts
+```
+
+```{r}
+barplot(counts,
+main="Simple Bar Plot",
+xlab="Improvement", ylab="Frequency")
+
+barplot(counts,
+main="Horizontal Bar Plot",
+xlab="Frequency", ylab="Improvement",
+horiz=TRUE)
+```
+
+**Creating bar plots with factor variables**
+
+If the categorical variable to be plotted is a factor or ordered factor, you can create a
+vertical bar plot quickly with the plot() function. Because Arthritis$Improved is
+a factor, the code
+```{r}
+plot(Arthritis$Improved, main="Simple Bar Plot",
+xlab="Improved", ylab="Frequency")
+
+plot(Arthritis$Improved, horiz=TRUE, main="Horizontal Bar Plot",
+xlab="Frequency", ylab="Improved")
+```
+
+
+**Stacked and grouped bar plots**
+
+If height is a matrix rather than a vector, the resulting graph will be a stacked or
+grouped bar plot. If beside=FALSE (the default), then each column of the matrix produces
+a bar in the plot, with the values in the column giving the heights of stacked
+"sub-bars." If beside=TRUE, each column of the matrix represents a group, and the values
+in each column are juxtaposed rather than stacked.
+Consider the cross-tabulation of treatment type and improvement status:
+```{r}
+library(vcd)
+
+counts <- table(Arthritis$Improved, Arthritis$Treatment)
+
+counts
+
+
+barplot(counts,
+main="Stacked Bar Plot",
+xlab="Treatment", ylab="Frequency",
+col=c("red", "yellow","green"),
+legend=rownames(counts))
+
+barplot(counts,
+main="Grouped Bar Plot",
+xlab="Treatment", ylab="Frequency",
+col=c("red", "yellow", "green"),
+legend=rownames(counts), beside=TRUE)
+
+```
+
+**Mean bar plots**
+
+Bar plots needn't be based on counts or frequencies. You can create bar plots that represent
+means, medians, standard deviations, and so forth by using the aggregate function
+and passing the results to the barplot() function.
+
+```{r}
+states <- data.frame(state.region, state.x77)
+means <- aggregate(states$Illiteracy, by=list(state.region), FUN=mean)
+means
+
+means <- means[order(means$x),]
+means
+
+barplot(means$x, names.arg=means$Group.1)
+title("Mean Illiteracy Rate")
+```
+
+**Spinograms**
+
+Before finishing our discussion of bar plots, let's take a look at a specialized version
+called a spinogram. In a spinogram, a stacked bar plot is rescaled so that the height of
+each bar is 1 and the segment heights represent proportions. Spinograms are created
+through the spine() function of the vcd package. The following code produces a simple
+spinogram:
+```{r}
+library(vcd)
+attach(Arthritis)
+counts <- table(Treatment, Improved)
+spine(counts, main="Spinogram Example")
+detach(Arthritis)
+```
+
+**Pie charts**
+
+```{r}
+slices <- c(10, 12,4, 16, 8)
+lbls <- c("US", "UK", "Australia", "Germany", "France")
+pie(slices, labels = lbls,
+main="Simple Pie Chart")
+pct <- round(slices/sum(slices)*100)
+lbls2 <- paste(lbls, " ", pct, "%", sep="")
+pie(slices, labels=lbls2, col=rainbow(length(lbls2)),
+main="Pie Chart with Percentages")
+
+library(plotrix)
+pie3D(slices, labels=lbls,explode=0.1,
+main="3D Pie Chart ")
+mytable <- table(state.region)
+lbls3 <- paste(names(mytable), "\n", mytable, sep="")
+pie(mytable, labels = lbls3,
+main="Pie Chart from a Table\n (with sample sizes)")
+```
+
+```{r}
+library(plotrix)
+slices <- c(10, 12,4, 16, 8)
+lbls <- c("US", "UK", "Australia", "Germany", "France")
+fan.plot(slices, labels = lbls, main="Fan Plot")
+```
+
+
+In a fan plot, the slices are rearranged to overlap
+each other, and the radii are modified so
+that each slice is visible
+
+**Histograms**
+
+```{r}
+par(mfrow=c(2,2))
+hist(mtcars$mpg)
+hist(mtcars$mpg,
+breaks=12,
+col="red",
+xlab="Miles Per Gallon",
+main="Colored histogram with 12 bins")
+hist(mtcars$mpg,
+freq=FALSE,
+breaks=12,
+col="red",
+xlab="Miles Per Gallon",
+main="Histogram, rug plot, density curve")
+rug(jitter(mtcars$mpg))
+lines(density(mtcars$mpg), col="blue", lwd=2)
+x <- mtcars$mpg
+h<-hist(x,
+breaks=12,
+col="red",
+xlab="Miles Per Gallon",
+main="Histogram with normal curve and box")
+xfit<-seq(min(x), max(x), length=40)
+yfit<-dnorm(xfit, mean=mean(x), sd=sd(x))
+yfit <- yfit*diff(h$mids[1:2])*length(x)
+lines(xfit, yfit, col="blue", lwd=2)
+box()
+```
+
+
+**Kernel density plots**
+
+`plot(density(x))`
+
+```{r}
+par(mfrow=c(2,1))
+d <- density(mtcars$mpg)
+plot(d)
+d <- density(mtcars$mpg)
+plot(d, main="Kernel Density of Miles Per Gallon")
+polygon(d, col="red", border="blue")
+rug(mtcars$mpg, col="brown")
+```
+
+
+```{r}
+library(sm)
+attach(mtcars)
+cyl.f <- factor(cyl, levels= c(4,6,8),
+labels = c("4 cylinder", "6 cylinder",
+"8 cylinder"))
+sm.density.compare(mpg, cyl, xlab="Miles Per Gallon")
+#title(main="MPG Distribution by Car Cylinders")
+colfill<-c(2:(1+length(levels(cyl.f))))
+#legend(locator(1), levels(cyl.f), fill=colfill)
+detach(mtcars)
+```
+
+**Box Plots**
+
+```{r}
+boxplot(mpg ~ cyl, data=mtcars,
+main="Car Mileage Data",
+xlab="Number of Cylinders",
+ylab="Miles Per Gallon")
+
+boxplot(mpg ~ cyl, data=mtcars,
+notch=TRUE,
+varwidth=TRUE,
+col="red",
+main="Car Mileage Data",
+xlab="Number of Cylinders",
+ylab="Miles Per Gallon")
+```
+
+
+```{r}
+mtcars$cyl.f <- factor(mtcars$cyl,
+levels=c(4,6,8),
+labels=c("4","6","8"))
+mtcars$am.f <- factor(mtcars$am,
+levels=c(0,1),
+labels=c("auto", "standard"))
+boxplot(mpg ~ am.f *cyl.f,
+data=mtcars,
+varwidth=TRUE,
+col=c("gold","darkgreen"),
+main="MPG Distribution by Auto Type",
+xlab="Auto Type", ylab="Miles Per Gallon")
+```
+
+**Violin plots**
+
+```{r}
+library(vioplot)
+x1 <- mtcars$mpg[mtcars$cyl==4]
+x2 <- mtcars$mpg[mtcars$cyl==6]
+x3 <- mtcars$mpg[mtcars$cyl==8]
+vioplot(x1, x2, x3,
+names=c("4 cyl", "6 cyl", "8 cyl"),
+col="gold")
+```
+
+**Dot Plots**
+
+```{r}
+dotchart(mtcars$mpg, labels=row.names(mtcars), cex=.7,
+main="Gas Mileage for Car Models",
+xlab="Miles Per Gallon")
+```
+
+```{r}
+x <- mtcars[order(mtcars$mpg),]
+x$cyl <- factor(x$cyl)
+x$color[x$cyl==4] <- "red"
+x$color[x$cyl==6] <- "blue"
+x$color[x$cyl==8] <- "darkgreen"
+
+dotchart(x$mpg,
+labels = row.names(x),
+cex=.7,
+groups = x$cyl,
+gcolor = "black",
+color = x$color,
+pch=19,
+main = "Gas Mileage for Car Models\ngrouped by cylinder",
+xlab = "Miles Per Gallon")
+```
+

@@ -1,0 +1,79 @@
+---
+title: "chapter 7 Visualization Lab_B"
+author: "Your Name Here"
+date: ""
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+We'll begin by loading all the required packages.
+```{r}
+library(MASS)
+library(lattice)
+library(ggplot2)
+```
+
+#### facet_wrap
+
+Using the `diamonds` data set and the `facet_wrap` command, create a figure that shows a scatterplot of `price` against `carat` for each combination of `cut` and `clarity`.  
+
+There are `r length(levels(diamonds$clarity))` levels of clarity, and `r length(levels(diamonds$cut))` levels of cut.  Your figure should therefore contain `r length(levels(diamonds$clarity)) * length(levels(diamonds$cut))` scatterplots.
+
+```{r fig.width=10, fig.height=10, dpi=70}
+ggplot(diamonds, aes(x = carat, y = price)) + geom_point() +  facet_grid(cut ~ clarity)
+```
+
+#### Plotting the Cars93 data
+
+This problem uses the Cars93 dataset from the MASS package.
+
+**(a)** Use `qplot` to create a scatterplot with Price on the y-axis and EngineSize on the `x-axis`.  
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+qplot(x = EngineSize, y = Price, data = Cars93)
+```
+
+**(b)** Repeat part (a) using the `ggplot` function and `geom_point()` layer.
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+ggplot(Cars93, aes(x = EngineSize, y = Price)) + geom_point()
+```
+
+**(c)** Repeat part (c), but this time specifying that the `color` mapping should depend on `Type` and the `shape` mapping should depend on `DriveTrain`.  
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+ggplot(Cars93, aes(x = EngineSize, y = Price, colour = Type, shape = DriveTrain)) + geom_point()
+```
+
+#### Plotting a map
+
+At the end of lecture we used the following code to generate a headmap of murder rates in the US.  
+
+```{r, fig.width = 7, fig.height = 4, fig.align='center'}
+library(maps)
+# Create data frame for map data (US states)
+states <- map_data("state")
+
+# Here's what the states data frame looks like
+str(states)
+
+# Make a copy of the data frame to manipulate
+arrests <- USArrests
+
+# Convert everything to lower case
+names(arrests) <- tolower(names(arrests))
+arrests$region <- tolower(rownames(USArrests))
+
+# Merge the map data with the arrests data based on region
+choro <- merge(states, arrests, sort = FALSE, by = "region")
+choro <- choro[order(choro$order), ]
+
+# Plot a map, filling in the states based on murder rate
+qplot(long, lat, data = choro, group = group, fill = murder,
+  geom = "polygon") + scale_fill_gradient(low = "#56B1F7", high = "#132B43")
+```
+
+Modify the code above to produce a heatmap of `assault` rates instead, with **orange colours** instead of blue colours for the gradient.  
+
+Here's a document that may help you pick colors: [Hex colour picker](https://www.w3schools.com/colors/colors_picker.asp)

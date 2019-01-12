@@ -1,0 +1,580 @@
+---
+title: "Regression Basics"
+author: "M. Affouf"
+date: "March 28, 2018"
+output: html_document
+---
+
+Regression analysis is used to predict a response variable (also called a dependent,
+criterion, or outcome variable) from one or more predictor variables (also called independent
+or explanatory variables). 
+
+
+For example, an exercise physiologist might use regression analysis to develop
+an equation for predicting the **expected number of calories** a person will burn
+while exercising on a treadmill. 
+
+The response variable is the number of calories
+burned (calculated from the amount of oxygen consumed), and 
+the predictor variables
+might include 
+1) duration of exercise (minutes), 
+2) percentage of time spent at
+their target heart rate, 
+3) average speed (mph), 
+4) age (years), 
+5) gender, and 
+6) body mass index (BMI).
+
+
+###Varieties of regression analysis
+
+Type of Regression | Description
+-------------------|--------------------------------------------------|
+Simple linear | Predicting a quantitative response variable from a quantitative explanatory variable.|
+Polynomial | Predicting a quantitative response variable from a quantitative explanatory variable, where the relationship is modeled as an nth order polynomial.|
+Multiple linear | Predicting a quantitative response variable from two or more explanatory variables.|
+Multilevel | Predicting a response variable from data that have a hierarchical structure (for example, students within classrooms within schools). Also called hierarchical, nested, or mixed models.|
+Multivariate | Predicting more than one response variable from one or more explanatory variables.|
+Logistic | Predicting a categorical response variable from one or more explanatory variables.|
+Poisson | Predicting a response variable representing counts from one or more explanatory variables.|
+Cox  | proportional hazards Predicting time to an event (death, failure, relapse) from one or more explanatory variables.|
+Time-series| Modeling time-series data with correlated errors.|
+Nonlinear| Predicting a quantitative response variable from one or more explanatory variables, where the form of the model is nonlinear.|
+Nonparametric| Predicting a quantitative response variable from one or more explanatory variables, where the form of the model is derived from the data and not specified a priori.|
+Robust| Predicting a quantitative response variable from one or more explanatory variables using an approach that's resistant to the effect of influential observations.
+
+
+In this chapter, we'll focus on regression methods that fall under the rubric of **ordinary least squares (OLS) regression**, including simple linear regression, polynomial regression,
+and multiple linear regression.
+
+##OLS regression
+
+OLS regression fits models of the form
+
+$$ Y_i = b_0 + b_1 X_{1i} +\cdots + b_k X_{ki} $$
+$i=1,.., n$, 
+where $n$ is the number of observations and $k$ is the number of predictor variables.
+In this equation:
+
+$Y_i$ is the predicted value of the dependent variable for observation i (specifically,
+it's the estimated mean of the Y distribution, conditional on the set of predictor values).
+
+$X_{ji}$ is the jth predictor value for the ith observation.
+
+$b_0$ is the intercept (the predicted value of Y when all the predictor variables
+equal zero).
+
+$b_i$ is the regression coefficient for the jth predictor (slope representing the
+change in $Y$ for a unit change in $X_j$).
+
+
+To properly interpret the coefficients of the OLS model, you must satisfy a number of
+statistical assumptions:
+
+*  Normality-For fixed values of the independent variables, the dependent variable
+is normally distributed.    
+*  Independence-The Yi values are independent of each other.  
+*  Linearity-The dependent variable is linearly related to the independent
+variables. 
+
+* Homoscedasticity-The variance of the dependent variable doesn't vary with the
+levels of the independent variables. (I could call this constant variance, but saying
+homoscedasticity makes me feel smarter.)
+
+
+###Fitting regression models with lm()
+
+In R, the basic function for fitting a linear model is lm(). The format is  
+`myfit <- lm(formula, data)`  
+where formula describes the model to be fit and data is the data frame containing the
+data to be used in fitting the model. The resulting object (myfit, in this case) is a list
+that contains extensive information about the fitted model. The formula is typically
+written as    
+`Y ~ X1 + X2 + ... + Xk`    
+where the `~` separates the response variable on the left from the predictor variables on
+the right, and the predictor variables are separated by `+` signs.
+
+
+###Symbols commonly used in R formulas
+
+
+`~` Separates response variables on the left from the explanatory variables on the right. For example, a prediction of y from x, z, and w would be coded `y ~ x + z + w`.
+
+`+` Separates predictor variables.
+
+`:` Denotes an interaction between predictor variables. A prediction of y from x, z, and the interaction between x and z would be coded `y ~ x + z + x:z`.
+
+`*` A shortcut for denoting all possible interactions. The code `y ~ x * z * w` expands to
+`y ~ x + z + w + x:z + x:w + z:w + x:z:w`.
+
+`^` Denotes interactions up to a specified degree. The code `y ~ (x + z + w)^2` expands
+to `y ~ x + z + w + x:z + x:w + z:w`.
+
+`.` A placeholder for all other variables in the data frame except the dependent variable. For example, if a data frame contained the variables x, y, z, and w, then the code `y ~ .`
+would expand to `y ~ x + z + w`.
+
+`- `A minus sign removes a variable from the equation. For example, `y ~ (x + z + w)^2 -x:w` expands to `y ~ x + z + w + x:z + z:w`.
+
+`-1` Suppresses the intercept. For example, the formula `y ~ x -1` fits a regression of y on
+x, and forces the line through the origin at x=0.
+
+`I()` Elements within the parentheses are interpreted arithmetically. For example, `y ~ x + (z + w)^2` would expand to 
+`y ~ x + z + w + z:w`. In contrast, the code 
+`y ~ x + I((z + w)^2)` would expand to 
+`y ~ x + h`, where h is a new variable created by squaring the sum of z and w.
+
+
+###Other functions that are useful when fitting linear models
+
+
+`summary()`  Displays detailed results for the fitted model 
+
+`coefficients()`  Lists the model parameters (intercept and slopes) for the fitted model
+
+`confint()` Provides confidence intervals for the model parameters (95% by default)
+
+`fitted()` Lists the predicted values in a fitted model
+
+`residuals()` Lists the residual values in a fitted model
+
+`anova()` Generates an ANOVA table for a fitted model, or an ANOVA table comparing
+two or more fitted models
+
+`vcov()` Lists the covariance matrix for model parameters
+
+`AIC()` Prints Akaike's Information Criterion
+
+`plot()` Generates diagnostic plots for evaluating the fit of a model
+
+`predict()` Uses a fitted model to predict response values for a new dataset.
+
+
+###Simple linear regression
+
+The dataset `women` in the base installation provides the height and weight for a set of 15 women ages 30 to 39. Suppose you want
+to predict weight from height.
+Having an equation for predicting
+weight from height can help
+you to identify overweight or
+underweight individuals.
+
+```{r}
+fit <- lm(weight ~ height, data=women)
+summary(fit)
+```
+
+```{r}
+women$weight
+fitted(fit)
+residuals(fit)
+
+plot(women$height,women$weight,
+xlab="Height (in inches)",
+ylab="Weight (in pounds)")
+abline(fit)
+```
+
+
+the prediction equation is
+
+`Weight = -87.52 + 3.43 * Height `
+
+Because a height of 0 is impossible, you wouldn't try to give a physical interpretation
+to the intercept. It merely becomes an adjustment constant. From the Pr(>|t|) column,
+you see that the regression coefficient (3.45) is significantly different from zero
+(p < 0.001) and indicates that there's an expected increase of 3.45 pounds of weight
+for every 1 inch increase in height. The multiple R-squared (0.991) indicates that the
+model accounts for 99.1% of the variance in weights. The multiple R-squared is also
+the squared correlation between the actual and predicted value (that is, ). The
+residual standard error (1.53 pounds) can be thought of as the average error in predicting
+weight from height using this model. The `F` statistic tests whether the predictor
+variables, taken together, predict the response variable above chance levels.
+Because there's only one predictor variable in simple regression, in this example the `F`
+test is equivalent to the `t-test` for the regression coefficient for height.
+
+###Polynomial regression
+
+
+The plot in figure 8.1 suggests that you might be able to improve your prediction
+using a regression with a quadratic term (that is, $X^2$). You can fit a quadratic equation
+using the statement
+
+`fit2 <- lm(weight ~ height + I(height^2), data=women)`
+The new term I(height^2) requires explanation. height^2 adds a height-squared
+term to the prediction equation. The I function treats the contents within the parentheses as an R regular expression. You need this because the ^ operator has a special
+meaning in formulas that you don't want to invoke here 
+
+```{r}
+fit2 <- lm(weight ~ height + I(height^2), data=women)
+summary(fit2)
+```
+
+```{r}
+plot(women$height,women$weight,
+xlab="Height (in inches)",
+ylab="Weight (in lbs)")
+lines(women$height,fitted(fit2))
+```
+
+
+`Weight = 261.88 ??? 7.35 × Height + 0.083 × Height^2`
+
+and both regression coefficients are significant at the p < 0.0001 level. The amount of variance accounted for has increased to 99.9%. The significance of the squared term (t = 13.89, p < .001) suggests that inclusion of the quadratic term improves the model fit.
+
+To fit a cubic polynomial, you'd use
+`fit3 <- lm(weight ~ height + I(height^2) +I(height^3), data=women)`
+
+
+the `scatterplot()` function in the car
+package provides a simple and convenient method of plotting a bivariate relationship.
+
+```{r}
+library(car)
+scatterplot(weight ~ height, data=women,
+spread=FALSE, smoother.args=list(lty=2), pch=19,
+main="Women Age 30-39",
+xlab="Height (inches)",
+ylab="Weight (lbs.)")
+```
+
+###Multiple linear regression
+
+When there's more than one predictor variable, simple linear regression becomes
+multiple linear regression
+
+We'll use the `state.x77` dataset in the base package for this example. Suppose you
+want to explore the relationship between a state's murder rate and other characteristics
+of the state, including population, illiteracy rate, average income, and frost levels
+(mean number of days below freezing).
+Because the `lm()` function requires a data frame (and the `state.x77` dataset is
+contained in a matrix), you can simplify your life with the following code:
+
+`states <- as.data.frame(state.x77[,c("Murder", "Population", "Illiteracy", "Income", "Frost")])`
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+cor(states)
+```
+
+```{r}
+library(car)
+scatterplotMatrix(states, spread=FALSE, smoother.args=list(lty=2),
+main="Scatter Plot Matrix")
+```
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost,
+data=states)
+summary(fit)
+```
+
+When there's more than one predictor variable, the regression coefficients indicate
+the increase in the dependent variable for a unit change in a predictor variable, holding
+all other predictor variables constant. For example, the regression coefficient for
+Illiteracy is 4.14, suggesting that an increase of 1% in illiteracy is associated with a
+4.14% increase in the murder rate, controlling for population, income, and temperature.
+The coefficient is significantly different from zero at the p < .0001 level. On the
+other hand, the coefficient for Frost isn't significantly different from zero (p = 0.954)
+suggesting that Frost and Murder aren't linearly related when controlling for the
+other predictor variables. Taken together, the predictor variables account for 57% of
+the variance in murder rates across states.
+
+###Multiple linear regression with interactions
+
+```{r}
+fit <- lm(mpg ~ hp + wt + hp:wt, data=mtcars)
+summary(fit)
+```
+
+You can see from the Pr(>|t|) column that the interaction between horsepower and
+car weight is significant. What does this mean? A significant interaction between two
+predictor variables tells you that the relationship between one predictor and the
+response variable depends on the level of the other predictor. Here it means the relationship
+between miles per gallon and horsepower varies by car weight.
+
+The model for predicting 
+`mpg = 49.81 - 0.12 × hp - 8.22 × wt + 0.03 × hp × wt`. 
+To interpret the interaction, you can plug in various values of wt and simplify the
+equation. For example, you can try the mean of wt (3.2) and one standard deviation
+below and above the mean (2.2 and 4.2, respectively). For wt=2.2, the equation simplifies
+to = 49.81 - 0.12 × hp - 8.22 × (2.2) + 0.03 × hp × (2.2) = 31.41 - 0.06 × hp.
+For wt=3.2, this becomes = 23.37 - 0.03 × hp. Finally, for wt=4.2 the equation
+becomes = 15.33 - 0.003 × hp. 
+
+You see that as weight increases (2.2, 3.2, 4.2), the
+expected change in mpg from a unit increase in hp decreases (0.06, 0.03, 0.003).
+
+```{r}
+library(effects)
+plot(effect("hp:wt", fit,, list(wt=c(2.2,3.2,4.2))), multiline=TRUE)
+```
+
+###Regression diagnostics
+
+you use the `lm()` function to fit an OLS regression model
+and the `summary()` function to obtain the model parameters and summary statistics.
+
+But there is no information concerning the degree to which you've satisfied the statistical assumptions underlying
+the model.
+
+Let's look at the output from the confint() function applied to the states multiple
+regression problem
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+confint(fit)
+```
+
+The results suggest that you can be 95% confident that the interval [2.38, 5.90] contains
+the true change in murder rate for a 1% change in illiteracy rate. Additionally,
+because the confidence interval for Frost contains 0, you can conclude that a change
+in temperature is unrelated to murder rate, holding the other variables constant. But
+your faith in these results is only as strong as the evidence you have that your data satisfies
+the statistical assumptions underlying the model.
+A set of techniques called regression diagnostics provides the necessary tools for evaluating
+the appropriateness of the regression model and can help you to uncover and
+correct problems.
+
+###A typical approach
+
+```{r}
+fit <- lm(weight ~ height, data=women)
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+The par(mfrow=c(2,2)) statement is used
+to combine the four plots produced by the plot() function into one large 2 × 2
+graph.
+
+To understand these graphs, consider the assumptions of OLS regression:
+
+*  Normality-If the dependent variable is normally distributed for a fixed set of
+predictor values, then the residual values should be normally distributed with a
+mean of 0. The Normal Q-Q plot (upper right) is a probability plot of the standardized
+residuals against the values that would be expected under normality. If
+you've met the normality assumption, the points on this graph should fall on
+the straight 45-degree line. Because they don't, you've clearly violated the normality
+assumption.
+
+* Independence-You can't tell if the dependent variable values are independent
+from these plots. You have to use your understanding of how the data was collected.
+There's no a priori reason to believe that one woman's weight influences
+another woman's weight. If you found out that the data were sampled from families,
+you might have to adjust your assumption of independence.
+
+* Linearity-If the dependent variable is linearly related to the independent variables,
+there should be no systematic relationship between the residuals and the
+predicted (that is, fitted) values. In other words, the model should capture all
+the systematic variance present in the data, leaving nothing but random noise.
+In the Residuals vs. Fitted graph (upper left), you see clear evidence of a curved
+relationship, which suggests that you may want to add a quadratic term to the
+regression.
+
+*  Homoscedasticity-If you've met the constant variance assumption, the points in
+the Scale-Location graph (bottom left) should be a random band around a horizontal
+line. You seem to meet this assumption.
+
+Finally, the Residuals vs. Leverage graph (bottom right) provides information about
+individual observations that you may wish to attend to. The graph identifies outliers,
+high-leverage points, and influential observations. Specifically:
+
+*  An outlier is an observation that isn't predicted well by the fitted regression
+model (that is, has a large positive or negative residual).
+
+* An observation with a high leverage value has an unusual combination of predictor
+values. That is, it's an outlier in the predictor space. The dependent variable
+value isn't used to calculate an observation's leverage.  
+*  An influential observation is an observation that has a disproportionate impact on the determination of the model parameters. Influential observations are identified
+using a statistic called Cook's distance, or Cook's D.
+
+To be honest, I find the Residuals vs. Leverage plot difficult to read and not useful.
+You'll see better representations of this information in later sections.
+To complete this section, let's look at the diagnostic plots for the quadratic fit. The
+necessary code is
+
+```{r}
+fit2 <- lm(weight ~ height + I(height^2), data=women)
+par(mfrow=c(2,2))
+plot(fit2)
+```
+
+This second set of plots suggests that the polynomial regression provides a better fit
+with regard to the linearity assumption, normality of residuals (except for observation
+13), and homoscedasticity (constant residual variance). Observation 15 appears to be
+influential (based on a large Cook's D value), and deleting it has an impact on the
+parameter estimates. 
+
+Finally, let's apply the basic approach to the states multiple regression problem:
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+the model
+assumptions appear to be well satisfied, with the exception that Nevada is an outlier.
+
+###An enhanced approach
+The car package provides a number of functions that significantly enhance your ability
+to fit and evaluate regression models.
+Check for examples.
+
+###Global validation of linear model assumption
+Finally, let's examine the gvlma() function in the gvlma package. Written by Pena and
+Slate (2006), the gvlma() function performs a global validation of linear model
+assumptions as well as separate evaluations of skewness, kurtosis, and heteroscedasticity.
+In other words, it provides a single omnibus (go/no go) test of model assumptions.
+The following listing applies the test to the `states` data.
+```{r}
+library(gvlma)
+gvmodel <- gvlma(fit)
+summary(gvmodel)
+```
+
+
+###Multicollinearity
+Multicollinearity can be detected using a statistic called the variance inflation factor
+(VIF). For any predictor variable, the square root of the VIF indicates the degree to
+which the confidence interval for that variable's regression parameter is expanded relative
+to a model with uncorrelated predictors (hence the name). VIF values are provided
+by the vif() function in the car package. As a general rule, $ \sqrt{vif}>2$ indicates a
+multicollinearity problem. The code is provided in the following listing. The results
+indicate that multicollinearity isn't a problem with these predictor variables.
+
+```{r}
+library(car)
+vif(fit)
+```
+
+```{r}
+sqrt(vif(fit)) > 2 # problem?
+```
+
+The results
+indicate that multicollinearity isn't a problem with these predictor variables.
+
+### Outliers
+Outliers are observations that aren't predicted well by the model. They have unusually
+large positive or negative residuals (Yi- Y_comp ). Positive residuals indicate that the model
+is underestimating the response value, whereas negative residuals indicate an overestimation.
+You've already seen one way to identify outliers. Points in the Q-Q plot of figure 
+that lie outside the confidence band are considered outliers. A rough rule of thumb is
+that standardized residuals that are larger than 2 or less than -2 are worth attention.
+The car package also provides a statistical test for outliers. The outlierTest()
+function reports the Bonferroni adjusted p-value for the largest absolute studentized
+residual:
+
+```{r}
+library(car)
+outlierTest(fit)
+```
+
+Here, you see that Nevada is identified as an outlier (p = 0.048). Note that this function
+tests the single largest (positive or negative) residual for significance as an outlier.
+
+##Selecting the "best" regression model
+
+###Comparing models
+You can compare the fit of two nested models using the anova() function in the base
+installation. A nested model is one whose terms are completely included in the other
+model. In the states multiple-regression model, you found that the regression coefficients
+for Income and Frost were nonsignificant.
+
+```{r}
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+fit1 <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+fit2 <- lm(Murder ~ Population + Illiteracy, data=states)
+anova(fit2, fit1)
+```
+
+Here, model 1 is nested within model 2. The anova() function provides a simultaneous
+test that Income and Frost add to linear prediction above and beyond Population and
+Illiteracy. Because the test is nonsignificant (p = .994), you conclude that they don't add
+to the linear prediction and you're justified in dropping them from your model.
+
+The Akaike Information Criterion (AIC) provides another method for comparing
+models. The index takes into account a model's statistical fit and the number of
+parameters needed to achieve this fit. Models with smaller AIC values-indicating adequate
+fit with fewer parameters-are preferred. The criterion is provided by the AIC()
+function
+
+```{r}
+fit1 <- lm(Murder ~ Population + Illiteracy + Income + Frost, data=states)
+ fit2 <- lm(Murder ~ Population + Illiteracy, data=states)
+ AIC(fit1,fit2)
+```
+
+The AIC values suggest that the model without Income and Frost is the better model.
+Note that although the ANOVA approach requires nested models, the AIC approach
+doesn't.
+
+Comparing two models is relatively straightforward, but what do you do when there
+are 4, or 10, or 100 possible models to consider? That's the topic of the next section.
+
+###Variable selection
+
+###STEPWISE REGRESSION
+In stepwise selection, variables are added to or deleted from a model one at a time,
+until some stopping criterion is reached. For example, in forward stepwise regression,
+you add predictor variables to the model one at a time, stopping when the addition of
+variables would no longer improve the model. In backward stepwise regression, you start
+with a model that includes all predictor variables, and then you delete them one at a
+time until removing variables would degrade the quality of the model. In stepwise stepwise
+regression (usually called stepwise to avoid sounding silly), you combine the forward
+and backward stepwise approaches. Variables are entered one at a time, but at
+each step, the variables in the model are reevaluated, and those that don't contribute
+to the model are deleted. A predictor variable may be added to, and deleted from, a
+model several times before a final solution is reached.
+The implementation of stepwise regression methods varies by the criteria used to
+enter or remove variables. The stepAIC() function in the MASS package performs stepwise
+model selection (forward, backward, or stepwise) using an exact AIC criterion. The
+next listing applies backward stepwise regression to the multiple regression problem
+```{r}
+library(MASS)
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+fit <- lm(Murder ~ Population + Illiteracy + Income + Frost,
+data=states)
+stepAIC(fit, direction="backward")
+```
+
+You start with all four predictors in the model. For each step, the AIC column provides
+the model AIC resulting from the deletion of the variable listed in that row. The AIC
+value for <none> is the model AIC if no variables are removed. In the first step, Frost is
+removed, decreasing the AIC from 97.75 to 95.75. In the second step, Income is
+removed, decreasing the AIC to 93.76. Deleting any more variables would increase the
+AIC, so the process stops.
+
+###ALL SUBSETS REGRESSION
+
+All subsets regression is performed using the regsubsets() function from the
+`leaps` package. You can choose the R-squared, Adjusted R-squared, or Mallows Cp statistic
+as your criterion for reporting "best" models.
+
+we'll apply all subsets regression to the states data. The results can
+be plotted with either the plot() function in the leaps package or the subsets()
+function in the car package.
+
+```{r}
+library(leaps)
+
+states <- as.data.frame(state.x77[,c("Murder", "Population",
+"Illiteracy", "Income", "Frost")])
+leaps <-regsubsets(Murder ~ Population + Illiteracy + Income +
+Frost, data=states, nbest=4)
+plot(leaps, scale="adjr2")
+#library(car)
+# subsets(leaps, statistic="cp", main="Cp Plot for All Subsets Regression")
+# abline(1,1,lty=2,col="red")
+```
+

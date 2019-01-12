@@ -1,0 +1,452 @@
+---
+title: "Time Series Basics"
+author: "M. Affouf"
+date: "April 6, 2018"
+output: html_document
+---
+
+#Time series
+
+How fast is global warming occurring, and what will the impact be in 10 years? 
+
+In a **cross-sectional** dataset, variables are
+measured at a single point in time. In contrast, **longitudinal** data involves measuring
+variables repeatedly over time. 
+
+we'll examine observations that have been recorded at regularly
+spaced time intervals for a given span of time. We can arrange observations such as
+these into a time series of the form `Y1, Y2, Y3, . , Yt, ., YT`, where `Yt` represents the
+value of `Y` at time `t` and `T` is the total number of observations in the series.
+
+Consider two very different time series displayed in figure. 
+![alt text](JohnsonData.png)
+The series on
+the left contains the quarterly earnings (dollars) per Johnson & Johnson share
+between 1960 and 1980. There are 84 observations: one for each quarter over 21  years. 
+
+The series on the right describes the monthly mean relative sunspot numbers
+from 1749 to 1983 recorded by the Swiss Federal Observatory and the Tokyo Astronomical
+Observatory. The sunspots time series is much longer, with 2,820 observations- 1 per month for 235 years.
+
+
+Studies of time-series data involve two fundamental questions: 
+
+what happened **(description)**, and what will happen next **(forecasting)**? 
+
+For the Johnson & Johnson
+data, you might ask   
+
+*   Is the price of Johnson & Johnson shares changing over time?     
+*   Are there quarterly effects, with share prices rising and falling in a regular fashion
+throughout the year?       
+*   Can you forecast what future share prices will be and, if so, to what degree of
+accuracy?   
+
+For the sunspot data, you might ask
+
+*  What statistical models best describe sunspot activity?  
+*  Do some models fit the data better than others?  
+*  Are the number of sunspots at a given time predictable and, if so, to what degree?
+
+
+Predicting future values of a time series, or **forecasting**, is a fundamental human
+activity, and studies of time series data have important real-world applications. 
+**Economists**
+use time-series data in an attempt to understand and predict what will happen in **financial markets**. 
+**City planners** use time-series data to predict future transportation
+demands. 
+**Climate scientists** use time-series data to study global climate change. Corporations
+use time series to predict product demand and future sales. 
+**Healthcare officials**
+use time-series data to study the spread of disease and to predict the number of
+future cases in a given region.
+**Seismologists** study times-series data in order to predict
+earthquakes.
+
+
+###Functions for time-series analysis
+
+
+Function | Package |Use            
+---------|---------|-------------  
+ts() |stats |Creates a time-series object.|
+plot()| graphics| Plots a time series.|
+start()| stats| Returns the starting time of a time series.|
+end()| stats| Returns the ending time of a time series.|
+frequency()| stats| Returns the period of a time series.|
+window()| stats| Subsets a time-series object.|
+ma()| forecast| Fits a simple moving-average model.|
+stl()| stats| Decomposes a time series into seasonal, trend, and irregular components using loess.|
+monthplot()| stats| Plots the seasonal components of a time series.|
+seasonplot()| forecast| Generates a season plot.|
+HoltWinters()| stats| Fits an exponential smoothing model.|
+forecast()| forecast| Forecasts future values of a time series.|
+accuracy()| forecast| Reports fit measures for a time-series model.|
+ets()| forecast| Fits an exponential smoothing model. Includes the ability to automate the selection of a model.|
+lag()| stats| Returns a lagged version of a time series.|
+Acf()| forecast| Estimates the autocorrelation function.|
+Pacf()| forecast| Estimates the partial autocorrelation function.|
+diff()| base| Returns lagged and iterated differences.|
+ndiffs()| forecast| Determines the level of differencing needed to remove trends in a time series.|
+adf.test()| tseries| Computes an Augmented Dickey-Fuller test that a time series is stationary.|
+arima()| stats| Fits autoregressive integrated moving-average models.|
+Box.test()| stats| Computes a Ljung-Box test that the residuals of a time series are independent.|
+bds.test()| tseries| Computes the BDS test that a series consists of independent, identically distributed random variables.|
+auto.arima()| forecast| Automates the selection of an ARIMA model.|
+
+###Datasets
+
+Time series| Description         |
+-----------|----------------------
+AirPassengers| Monthly airline passenger numbers from 1949-1960      
+JohnsonJohnson| Quarterly earnings per Johnson & Johnson share    
+nhtemp| Average yearly temperatures in New Haven, Connecticut, from 1912-1971  
+Nile| Flow of the river Nile    
+sunspots| Monthly sunspot numbers from 1749-1983     
+
+We'll start with methods for creating and manipulating time series, describing and
+plotting them, and decomposing them into level, trend, seasonal, and irregular
+(error) components. Then we'll turn to forecasting, starting with popular exponential
+modeling approaches that use weighted averages of time-series values to predict
+future values. Next we'll consider a set of forecasting techniques called autoregressive
+integrated moving averages (ARIMA) models that use correlations among recent data
+points and among recent prediction errors to make future forecasts.
+
+###Creating a time-series object in R
+
+
+In order to work with a time series in R, you have to place it into a time-series object-an
+R structure that contains the observations, the starting and ending time of the series and information about its periodicity (for example, monthly, quarterly, or annual
+data). Once the data are in a time-series object, you can use numerous functions to
+manipulate, model, and plot the data.
+
+`myseries <- ts(data, start=, end=, frequency=)`
+
+for example, frequency=1 for annual data, frequency=12 for monthly data, and
+frequency=4 for quarterly data
+
+An example is given in the following listing. The data consist of monthly sales figures for two years, starting in January 2003.
+
+```{r}
+sales <- c(18, 33, 41,  7, 34, 35, 24, 25, 24, 21, 25, 20,
+           22, 31, 40, 29, 25, 21, 22, 54, 31, 25, 26, 35)
+tsales <- ts(sales, start=c(2003, 1), frequency=12)
+tsales
+plot(tsales)
+```
+
+###Smoothing with simple moving averages
+The first step when investigating a time series is to plot it,
+Consider
+the Nile time series. It records the annual flow of the river Nile at Ashwan from 1871-1970. 
+A plot of the series can be seen in the upper-left panel of figure.
+![alt text](NileData.png)
+```{r}
+# Simple moving averages
+library(forecast)
+opar <- par(no.readonly=TRUE)
+par(mfrow=c(2,2))
+ylim <- c(min(Nile), max(Nile))
+plot(Nile, main="Raw time series")
+plot(ma(Nile, 3), main="Simple Moving Averages (k=3)", ylim=ylim)
+plot(ma(Nile, 7), main="Simple Moving Averages (k=7)", ylim=ylim)
+plot(ma(Nile, 15), main="Simple Moving Averages (k=15)", ylim=ylim)
+par(opar)
+
+```
+
+The time series appears to be decreasing, but there is a great deal of variation from year to year.
+Time series typically have a significant irregular or error component. In order to
+discern any patterns in the data, you'll frequently want to plot a smoothed curve that
+damps down these fluctuations. One of the simplest methods of smoothing a time
+series is to use `simple moving averages`. For example, each data point can be replaced
+with the mean of that observation and one observation before and after it. This is
+called a centered moving average. A centered moving average is defined as
+`St = (Yt-q + . + Yt + . + Yt+q) / (2q + 1)`
+where St is the smoothed value at time t and `k = 2q + 1` is the number of observations
+that are averaged. The k value is usually chosen to be an odd number (3 in this
+example). By necessity, when using a centered moving average, you lose the `(k - 1) / 2`
+observations at each end of the series.
+
+
+###Seasonal decomposition
+Time-series data that have a seasonal aspect (such as monthly or quarterly data) can be decomposed into a `trend component, a seasonal component, and an irregular component`. The `trend` component captures changes in level over time. The `seasonal` component
+captures cyclical effects due to the time of year. The `irregular` (or error) component
+captures those influences not described by the trend and seasonal effects.
+The decomposition can be `additive` or `multiplicative`. In an additive model, the components sum to give the values of the time series. Specifically,
+
+`Y_t = Trend_t + Seasonal_t + Irregular_t`
+
+where the observation at time t is the sum of the contributions of the trend at time t,
+the seasonal effect at time t, and an irregular effect at time t.
+
+In a multiplicative model, given by the equation
+`Yt = Trend_t * Seasonal_t * Irregular_t`
+
+the trend, seasonal, and irregular influences are multiplied. Examples are given in figure
+![alt text](TimeData.png)
+
+In the first plot (a), there is neither a trend nor a seasonal component. The only influence
+is a random fluctuation around a given level. In the second plot (b), there is an
+upward trend over time, as well as random fluctuations. In the third plot (c), there are
+seasonal effects and random fluctuations, but no overall trend away from a horizontal
+line. In the fourth plot (d), all three components are present: an upward trend, seasonal
+effects, and random fluctuations. You also see all three components in the final
+plot (e), but here they combine in a multiplicative way. Notice how the variability is
+proportional to the level: as the level increases, so does the variability. This amplification
+(or possible damping) based on the current level of the series strongly suggests a
+multiplicative model.
+
+A popular method for decomposing a time series into `trend, seasonal, and irregular` components is seasonal decomposition by loess smoothing.
+In R, this can be
+accomplished with the `stl()` function. The format is   
+`stl(ts, s.window=, t.window=)`
+
+where `ts` is the time series to be decomposed, `s.window` controls how fast the seasonal effects can change over time, and `t.window` controls how fast the trend can change over time. 
+Smaller values allow more rapid change. Setting `s.window="periodic"`
+forces seasonal effects to be identical across years. Only the `ts` and `s.window` parameters 
+are required. See help(stl) for details.
+
+The `stl() function can only handle additive models, but this isn't a serious limitation.   
+Multiplicative models can be transformed into additive models using a log transformation:   
+`log(Y_t) = log(Trend_t * Seasonal_t * Irregular_t)`
+
+`= log(Trend_t) + log(Seasonal_t) + log(Irregular_t)`
+
+After fitting the additive model to the log transformed series, the results can be backtransformed
+to the original scale. Let's look at an example.
+
+The time series `AirPassengers` comes with a base R installation and describes the monthly totals (in thousands) of international airline passengers between 1949 and 1960. A plot of the data is given in the top of figure. From the graph, it appears that variability of the series increases with the level, suggesting a multiplicative model.
+
+```{r}
+# Listing 15.3 - Seasonal decomposition using slt()
+plot(AirPassengers)
+lAirPassengers <- log(AirPassengers)
+plot(lAirPassengers, ylab="log(AirPassengers)")
+fit <- stl(lAirPassengers, s.window="period")
+plot(fit)
+head(fit$time.series)
+head(exp(fit$time.series))
+
+
+```
+
+
+First, the time series is plotted and transformed b. A seasonal decomposition is performed
+and saved in an object called fit c. Plotting the results gives the graph in figure
+15.6. The graph shows the time series, seasonal, trend, and irregular components
+from 1949 to 1960.
+
+The object returned by the stl() function contains a component called
+time.series that contains the trend, season, and irregular portion of each observation
+d. In this case, fit$time.series is based on the logged time series.
+exp(fit$time.series) converts the decomposition back to the original metric.
+Examining the seasonal effects suggests that the number of passengers increased by
+24% in July (a multiplier of 1.24) and decreased by 20% in November (with a multiplier
+of .80).
+Two additional graphs can help to visualize a seasonal decomposition. They're created
+by the monthplot() function that comes with base R and the seasonplot() function
+provided in the forecast package. The code
+
+```{r}
+par(mfrow=c(2,1))
+library(forecast)
+monthplot(AirPassengers, xlab="",  ylab="")
+seasonplot(AirPassengers, year.labels="TRUE", main="")
+par(opar)
+
+```
+
+###Exponential forecasting models
+
+Exponential models are some of the most popular approaches to forecasting the
+future values of a time series. They're simpler than many other types of models, but
+they can yield good short-term predictions in a wide range of applications. They differ
+from each other in the components of the time series that are modeled. A simple
+exponential model (also called a single exponential model) fits a time series that has a
+constant level and an irregular component at time i but has neither a trend nor a seasonal
+component. A double exponential model (also called a Holt exponential smoothing)
+fits a time series with both a level and a trend. Finally, a triple exponential model (also
+called a Holt-Winters exponential smoothing) fits a time series with level, trend, and seasonal
+components.
+Exponential models can be fit with either the HoltWinters() function in the base
+installation or the ets() function that comes with the forecast package. The ets()
+function has more options and is generally more powerful. We'll focus on the ets()
+function in this section.
+The format of the ets() function is
+
+`ets(ts, model="ZZZ")`
+
+###Simple exponential smoothing
+Simple exponential smoothing uses a weighted average of existing time-series values to
+make a short-term prediction of future values. The weights are chosen so that observations
+have an exponentially decreasing impact on the average as you go back in time.
+The simple exponential smoothing model assumes that an observation in the time
+series can be described by
+
+`Yt = level + irregulart`
+
+The prediction at time Yt+1 (called the 1-step ahead forecast) is written as
+`Yt+1 = c0Yt + c1Yt???1 + c2Yt???2 + c2Yt???2 + ...`
+where `ci = ??(1?????)i, i = 0, 1, 2, ... and 0 ??? ?? ???1`. The ci weights sum to one, and the
+1-step ahead forecast can be seen to be a weighted average of the current value and all
+past values of the time series. The alpha (??) parameter controls the rate of decay for
+the weights. The closer alpha is to 1, the more weight is given to recent observations.
+The closer alpha is to 0, the more weight is given to past observations.
+
+```{r}
+# Simple exponential smoothing
+library(forecast)
+fit <- HoltWinters(nhtemp, beta=FALSE, gamma=FALSE)
+fit
+
+forecast(fit, 1)
+
+plot(forecast(fit, 1), xlab="Year",
+     ylab=expression(paste("Temperature (", degree*F,")",)),
+     main="New Haven Annual Mean Temperature")
+
+#accuracy(fit)
+
+
+```
+
+###Holt and Holt-Winters exponential smoothing
+
+The Holt exponential smoothing approach can fit a time series that has an overall
+level and a trend (slope). The model for an observation at time t is
+Yt = level + slope*t + irregulart
+An alpha smoothing parameter controls the exponential decay for the level, and a beta
+smoothing parameter controls the exponential decay for the slope. Again, each parameter
+ranges from 0 to 1, with larger values giving more weight to recent observations.
+The Holt-Winters exponential smoothing approach can be used to fit a time series
+that has an overall level, a trend, and a seasonal component. Here, the model is
+
+`Yt = level + slope*t + st + irregulart`
+
+```{r}
+# Exponential smoothing with level, slope, and seasonal components
+fit <- HoltWinters(log(AirPassengers))
+fit
+
+#accuracy(fit)
+
+pred <- forecast(fit, 5)
+pred
+plot(pred, main="Forecast for Air Travel",
+     ylab="Log(AirPassengers)", xlab="Time")
+pred$mean <- exp(pred$mean)
+pred$lower <- exp(pred$lower)
+pred$upper <- exp(pred$upper)
+p <- cbind(pred$mean, pred$lower, pred$upper)
+dimnames(p)[[2]] <- c("mean", "Lo 80", "Lo 95", "Hi 80", "Hi 95")
+p
+
+```
+
+###The ets() function and automated forecasting
+
+The `ets()` function has additional capabilities. You can use it to fit exponential models
+that have multiplicative components, add a dampening component, and perform
+automated forecasts. Let's consider each in turn.
+In the previous section, you fit an additive exponential model to the log of the `AirPassengers` time series. Alternatively, you could fit a multiplicative model to the
+original data. The function call would be either 
+`ets(AirPassengers, model="MAM")`
+
+or the equivalent 
+`hw(AirPassengers, seasonal="multiplicative")`. 
+The trend
+remains additive, but the seasonal and irregular components are assumed to be multiplicative.
+By using a multiplicative model in this case, the accuracy statistics and forecasted
+values are reported in the original metric (thousands of passengers)-a
+decided advantage.
+The `ets()` function can also fit a damping component. Time-series predictions
+often assume that a trend will continue up forever (housing market, anyone?). A
+damping component forces the trend to a horizontal asymptote over a period of time.
+In many cases, a damped model makes more realistic predictions.
+Finally, you can invoke the ets() function to automatically select a best-fitting
+model for the data. Let's fit an automated exponential model to the Johnson & Johnson
+data described in the introduction to this chapter. The following code allows the
+software to select a best-fitting model.
+
+```{r}
+# Automatic exponential forecasting with ets()
+library(forecast)
+fit <- ets(JohnsonJohnson)
+fit
+plot(forecast(fit), main="Johnson and Johnson Forecasts",
+     ylab="Quarterly Earnings (Dollars)", xlab="Time")
+
+```
+
+##ARIMA forecasting models
+
+In the autoregressive integrated moving average (ARIMA) approach to forecasting, predicted
+values are a linear function of recent actual values and recent errors of prediction
+(residuals). ARIMA is a complex approach to forecasting. In this section, we'll
+limit discussion to ARIMA models for non-seasonal time series.
+
+###ARMA and ARIMA models
+In an autoregressive model of order p, each value in a time series is predicted from a linear
+combination of the previous p values
+
+`AR(p):Yt = ?? + ??1Yt???1 + ??2Yt???2 + ...+ ?? pYt???p + ??t`
+
+where Yt is a given value of the series, ?? is the mean of the series, the ?? s are the
+weights, and ??
+t is the irregular component. In a moving average model of order q, each
+value in the time series is predicted from a linear combination of q previous errors. In
+this case
+`MA(q):Yt` 
+where the ?? s are the errors of prediction and the ?? s are the weights. (It's important to
+note that the moving averages described here aren't the simple moving averages
+Combining the two approaches yields an `ARMA(p, q)` model of the form
+
+that predicts each value of the time series from the past p values and q residuals.
+
+```{r}
+# Transforming the time series and assessing stationarity
+library(forecast)
+library(tseries)
+plot(Nile)
+ndiffs(Nile)
+dNile <- diff(Nile)
+plot(dNile)
+adf.test(dNile)
+
+
+```
+
+
+###FITTING THE MODEL(S)
+The ARIMA model is fit with the arima() function. The format is arima(ts,
+order=c(q, d, q)). The result of fitting an ARIMA(0, 1, 1) model to the Nile time
+series is given in the following listing.
+```{r}
+#  Fit an ARIMA model
+fit <- arima(Nile, order=c(0,1,1))
+fit
+#accuracy(fit)
+
+
+# Evaluating the model fit
+qqnorm(fit$residuals)
+qqline(fit$residuals)
+Box.test(fit$residuals, type="Ljung-Box")
+
+
+# Forecasting with an ARIMA model
+forecast(fit, 3)
+plot(forecast(fit, 3), xlab="Year", ylab="Annual Flow")
+
+
+#  Automated ARIMA forecasting
+library(forecast)
+fit <- auto.arima(sunspots)
+fit
+forecast(fit, 3)
+#accuracy(fit)
+```
+
+
+

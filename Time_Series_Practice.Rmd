@@ -1,0 +1,389 @@
+---
+title: "Time Series Practice"
+author: "M. Affouf"
+date: "April 6, 2018"
+output: html_document
+---
+
+#Time Series Analysis
+
+###Creating and examining date objects
+
+The base R package provides date functionality. This grab-bag recipe shows you several date-related operations in R. R internally represents dates as the number of days from
+1 January, 1970.
+
+```{r}
+#Internally, R represents dates as the number of days from 1 January, 1970:
+#1. Get today's date:
+
+ Sys.Date()
+
+#2. Create a date object from a string:
+ # Supply year as two digits
+ # Note correspondence between separators in the date string and the format string
+
+as.Date("1/1/80", format = "%m/%d/%y")
+
+ # Supply year as 4 digits
+ # Note uppercase Y below instead of lowercase y as above
+
+ as.Date("1/1/1980", format = "%m/%d/%Y")
+
+ # If you omit format string, you must give date as "yyyy/mm/dd" or as "yyyy-mm-dd"
+ 
+ as.Date("1970/1/1")
+
+ as.Date("70/1/1")
+
+#3. Use other options for separators (this example uses hyphens) in the format string, and also see the underlying numeric value:
+ 
+ dt <- as.Date("1-1-70", format = "%m-%d-%y")
+ as.numeric(dt)
+ 
+#4. Explore other format string options:
+ 
+ as.Date("Jan 15, 2015", format = "%b %d, %Y")
+
+ as.Date("January 15, 15", format = "%B %d, %y")
+
+#5. Create dates from numbers by typecasting:
+ 
+ dt <- 1000
+ class(dt) <- "Date"
+ dt # 1000 days from 1/1/70
+
+ dt <- -1000
+ class(dt) <- "Date"
+ dt # 1000 days before 1/1/70
+
+#6. Create dates directly from numbers by setting the origin date:
+ 
+ as.Date(1000, origin = as.Date("1980-03-31"))
+
+ as.Date(-1000, origin = as.Date("1980-03-31"))
+
+#7. Examine date components: 
+ 
+ dt <- as.Date(1000, origin = as.Date("1980-03-31"))
+ dt
+
+ # Get year as four digits
+ format(dt, "%Y")
+
+ # Get the year as a number rather than as character string 
+ 
+ as.numeric(format(dt, "%Y"))
+
+ # Get year as two digits
+ format(dt, "%y")
+
+ # Get month
+ format(dt, "%m")
+
+ as.numeric(format(dt, "%m"))
+
+ # Get month as string
+ format(dt, "%b")
+
+ format(dt, "%B")
+
+ months(dt)
+
+ weekdays(dt)
+
+ quarters(dt)
+ 
+  julian(dt)
+
+
+
+julian(dt, origin = as.Date("1980-03-31"))
+
+```
+
+
+The following table summarizes the formatting options for the components of the date:
+
+Format specifier| Description|
+----------------|------------|
+%d| Day of month as a number-for example, 15|
+%m| Month as a number-for example, 10|
+%b| Abbreviated string representation of month-for example, "Jan"|
+%B| Complete string representation of month-for example,"January"|
+%y| Year as two digits-for example, 87|
+%Y| Year as four digits-for example, 2001|
+
+###Operating on date objects
+
+```{r}
+#1. Perform the addition and subtraction of days from date objects:
+ dt <- as.Date("1/1/2001", format = "%m/%d/%Y")
+ dt
+
+ dt + 100 # Date 100 days from dt
+
+ dt + 31
+
+#2. Subtract date objects to find the number of days between two dates:
+ dt1 <- as.Date("1/1/2001", format = "%m/%d/%Y")
+ dt2 <- as.Date("2/1/2001", format = "%m/%d/%Y")
+ dt1-dt1
+
+ dt2-dt1
+
+ dt1-dt2
+
+ as.numeric(dt2-dt1)
+
+#3. Compare date objects:
+ dt2 > dt1
+
+ dt2 == dt1
+
+#4. Create date sequences:
+ d1 <- as.Date("1980/1/1")
+ d2 <- as.Date("1982/1/1")
+ # Specify start date, end date and interval
+ seq(d1, d2, "month")
+
+ d3 <- as.Date("1980/1/5")
+ seq(d1, d3, "day")
+
+ # more interval options
+ seq(d1, d2, "2 months")
+
+ # Specify start date, interval and sequence length
+ seq(from = d1, by = "4 months", length.out = 4 ) 
+ 
+#5. Find a future or past date from a given date, based on an interval:
+ seq(from = d1, by = "3 weeks", length.out = 2)[2]
+# Example
+BD<- as.Date("2005/2/1") 
+BD
+weekdays(BD)
+
+DN<- Sys.Date()
+DN
+#Age in days
+DN-BD
+
+```
+
+
+###Performing preliminary analyses on time series data
+
+
+
+```{r}
+#1. Read the file. We will use a data file that has the share prices of Walmart (downloaded)
+ wm <- read.csv("walmart.csv")
+# 2. View the data as a line chart:
+ plot(wm$Adj.Close, type = "l")
+#3. Compute and plot daily price movements:
+ d <- diff(wm$Adj.Close)
+ plot(d, type = "l") 
+#4. Generate a histogram of the daily price changes, along with a density plot:
+ hist(d, prob = TRUE, ylim = c(0,0.8), main = "Walmart stock", col = "blue")
+ lines(density(d), lwd = 3)
+#5. Compute one-period returns:
+ wmm <- read.csv("walmart-monthly.csv")
+ wmm.ts <- ts(wmm$Adj.Close)
+ d <- diff(wmm.ts)
+ wmm.return <- d/lag(wmm.ts, k=-1)
+ hist(wmm.return, prob = TRUE, col = "blue")
+
+```
+
+* Step 1 reads the data and step 2 plots it as a line chart.
+* Step 3 uses the diff function to generate single-period differences. It then uses the
+plot function to plot the differences. By default, the diff function computes single-period
+differences. You can use the lag argument to compute differences for greater lags. For
+example, the following calculates two-period lagged differences:
+
+`diff(wmm$Adj.Close, lag = 2)`
+
+* Step 4 generates a histogram of one-period price changes. It uses prob=TRUE to
+generate a histogram based on proportions, and then adds on a density plot as well
+to give a higher-granularity view of the shape of the distribution.
+
+* Step 5 computes one-period returns for the stock. It does this by dividing the one-period
+differences by the stock value at the first of the two periods that the difference is based on. It then generates a histogram of the returns.
+
+###Using time series objects
+
+```{r}
+#1. Read the data. The file has 100 rows and a single column named sales:
+ s <- read.csv("ts-example.csv")
+#2. Convert the data to a simplistic time series object without any explicit notion of time:
+ s.ts <- ts(s)
+ class(s.ts)
+
+#3. Plot the time series:
+ plot(s.ts)
+ 
+#4. Create a proper time series object with time points:
+ s.ts.a <- ts(s, start = 2002)
+ head(s.ts.a)
+
+ plot(s.ts.a)
+ # results show that R treated this as an annual
+ # time series with 2002 as the starting year 
+ # Create a monthly time series
+ s.ts.m <- ts(s, start = c(2002,1), frequency = 12)
+ s.ts.m 
+plot(s.ts.m) # note x axis on plot
+
+ # Specify frequency = 4 for quarterly data
+ s.ts.q <- ts(s, start = 2002, frequency = 4)
+ s.ts.q
+#5. Query time series objects (we use the s.ts.m object we created in the previous step):
+ # When does the series start?
+ start(s.ts.m)
+
+ # When does it end?
+ end(s.ts.m)
+
+ # What is the frequency?
+ frequency(s.ts.m)
+ 
+#6. Create a time series object with multiple time series. This data file contains US monthly consumer prices for white flour and unleaded gas for the years 1980 through 2014 (downloaded from the website of the US Bureau of Labor Statistics):
+ prices <- read.csv("prices.csv")
+ prices.ts <- ts(prices, start=c(1980,1), frequency = 12)
+#7. Plot a time series object with multiple time series:
+ plot(prices.ts)
+ 
+ # Plot both series in one panel with suitable legend
+ plot(prices.ts, plot.type = "single", col = 1:2)
+ legend("topleft", colnames(prices.ts), col = 1:2, lty = 1)
+```
+
+###Decomposing time series
+
+```{r}
+#The following steps decompose time series:
+#1. Read the data. The file has the Bureau of Labor Statistics monthly price data for unleaded gas and white flour for 1980 through 2014:
+ prices <- read.csv("prices.csv")
+#2. Create and plot the time series of gas prices:
+ prices.ts = ts(prices, start = c(1980,1), frequency = 12)
+ plot(prices.ts[,2])
+#3. The plot shows seasonality in gas prices. The amplitude of fluctuations seems to increase with time and hence this looks like a multiplicative time series. Thus, we will use the log of the prices to make it additive. Use the stl function to perform  Loess decomposition of the gas prices:
+ prices.stl <- stl(log(prices.ts[,1]), s.window = "period")
+#4. Plot the results of stl:
+ plot(prices.stl)
+ 
+ #5. Alternately, you can use the decompose function to perform a decomposition by moving averages:
+ prices.dec <- decompose(log(prices.ts[,2]))
+ plot(prices.dec)
+ 
+#6. Adjust the gas prices for seasonality and plot it:
+ gas.seasonally.adjusted <- prices.ts[,2] - prices.dec$seasonal
+ plot(gas.seasonally.adjusted) 
+```
+
+####How it works...
+
+* Step 1 reads the data and Step 2 creates and plots the time series. For more details, see the recipe, Using time series objects, earlier in this chapter.    
+* Step 3 shows the use of the stl function to decompose an additive time series. Since our
+earlier plot indicated that the amplitude of the fluctuations increased with time, thereby
+suggesting a multiplicative time series, we applied the log function to convert it into an
+additive time series and then decomposed it.
+
+* Step 4 uses the plot function to plot the results.
+
+* Step 5 uses the decompose function to perform a decomposition through moving averages
+and then plots it.    
+* Step 6 adjusts gas prices for seasonality by subtracting the seasonal component from the
+original time series of the gas prices, and then plots the resulting time series.
+
+###Filtering time series data
+
+```{r}
+#To filter time series data, follow these steps:
+#1. Read the data. The file has fictitious weekly sales data for some product:
+ s <- read.csv("ts-example.csv")
+#2. Create the filtering vector. We assume a seven-period filter:
+ n <- 7
+ wts <- rep(1/n, n)
+#3. Compute the symmetrically filtered values (three past values, one current value, and three future values) and one-sided values (one current and six past values:
+ s.filter1 <- filter(s$sales, filter = wts, sides = 2)
+ s.filter2 <- filter(s$sales, filter = wts, sides = 1)
+#4. Plot the filtered values:
+ plot(s$sales, type = "l")
+ lines(s.filter1, col = "blue", lwd = 3)
+ lines(s.filter2, col = "red", lwd = 3)
+```
+
+####How it works...
+
+* Step 1 reads the data.    
+* Step 2 creates the filtering weights. We used a window of seven periods. This means that the weighted average of the current value and six others will comprise the filtered value at the current position.   
+* Step 3 computes the two-sided filter (the weighted average of the current value and three prior and three succeeding values) and a one-sided filter based on the current value and six prior ones.   
+* Step 4 plots the original data and the symmetric and one-sided filters. We can see that the two-sided filter tracks the changes earlier.
+
+####Smoothing and forecasting using the Holt-Winters method
+
+
+```{r}
+#To apply the HoltWinters method for exponential smoothing and forecasting, follow these steps:
+#1. Read the data. The file has monthly stock prices from Yahoo! Finance for Infosys between March 1999 and January 2015:
+ infy <- read.csv("infy-monthly.csv")
+#2. Create the time series object:
+ infy.ts <- ts(infy$Adj.Close, start = c(1999,3), frequency = 12)
+#3. Perform Holt-Winters exponential smoothing:
+ infy.hw <- HoltWinters(infy.ts)
+#4. Plot the results:
+ plot(infy.hw, col = "blue", col.predicted = "red")
+
+# Examine the results:
+ # See the squared errors
+ infy.hw$SSE
+
+ # The alpha beta and gamma used for filtering
+ infy.hw$alpha
+
+ infy.hw$beta
+
+ infy.hw$gamma
+
+
+ # the fitted values
+ head(infy.hw$fitted)
+
+# Generate and plot forecasts with the Holt-Winters model:
+ library(forecast)
+ infy.forecast <- forecast(infy.hw, h=20)
+ plot(infy.forecast) 
+```
+
+How it works...
+
+* Step 1 reads the data and in step 2 the time series object, ts, is created. For more details, see the recipe, Using time series objects, earlier in this chapter.
+* In step 3 the HoltWinters function is used to smooth the data.    
+* In step 4 the resulting HoltWinters object is plotted. It shows the original time series as well as the smoothed values.     
+* Step 5 shows the functions available to extract information from the Holt-Winters model object.     
+* In step 6 the predict.HoltWinters function is used to predict future values. The colored bands show the 85 % and 95 % confidence intervals.
+
+###Building an automated ARIMA model
+
+```{r}
+#To build an automated ARIMA model, follow these steps:
+#1. Read the data. The file has monthly stock prices from Yahoo! Finance for Infosys between March 1999 and January 2015:
+ infy <- read.csv("infy-monthly.csv")
+#2. Create the time series object:
+ infy.ts <- ts(infy$Adj.Close, start = c(1999,3), frequency = 12)
+#3. Run the ARIMA model:
+ infy.arima <- auto.arima(infy.ts)
+#4. Generate the forecast using the ARIMA model:
+ infy.forecast <- forecast(infy.arima, h=10)
+#5. Plot the results:
+ plot(infy.forecast)
+ 
+```
+
+How it works...
+
+* Step 1 reads the data.  
+* In step 2, the time series object, ts, is created. For more details, see the recipe Using time series objects, earlier in this chapter.    
+* In step 3, the auto.arima function in the forecast package is used to generate the ARIMA model. This function conducts an orderly search to generate the best ARIMA model according to the AIC, AICc, or the BIC value. We control the criterion used through the ic parameter (for example, ic = "aicc"). If we provide no value, the function uses AICc.     
+* In step 4, the forecast for the specified time horizon (the h parameter) is generated.   
+* Step 5 plots the results. The two bands show the 85 percent and the 95 percent confidence intervals. You can control the color of the data line through the col parameter and the color of the forecast line through fcol.

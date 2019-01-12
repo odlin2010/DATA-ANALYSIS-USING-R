@@ -1,0 +1,125 @@
+---
+title: "Time Series & Financial Data"
+author: "M. Affouf"
+date: "4/10/18"
+output: html_document
+---
+These notes are based on " R for everyone: Advanced Analytics Book by Lander"
+
+### Autoregressive Moving Average
+The autoregressive (AR), moving average (MA), or both (ARMA). These models are easy to do in R. The formula for an (ARMA(p,q)) is
+$$ X_t -a_1X_{t-1}-\cdots -a_p X_{t-p}=Z_t +t_1Z_{t-1}+\cdots + t_qZ_{t-q}$$
+where
+$$ Z_t = WN(0,\sigma^2)$$
+is white noise.
+
+Make use of the World Bank API to download gross domestic product (GDP) for a number of countries from 1960 to 2017
+
+```{r}
+#load the world Bank API package
+require(WDI)
+# pull the data
+
+gdp<- WDI(country = c("US","CA","GB", "DE", "CN","JP","SG"),indicator = c("NY.GDP.PCAP.CD", "NY.GDP.MKTP.CD"), start=1960, end=2017)
+#end=2011)
+#give it good names
+names(gdp) <- c("iso2c","Country","Year","PerCapGDP","GDP")
+
+#Inspect the data
+head(gdp)
+
+library(ggplot2)
+library(scales)
+#per capita GDP
+ggplot(gdp, aes(Year, PerCapGDP, color=Country, linetype=Country))+
+  geom_line()+scale_y_continuous(label=dollar)
+
+library(useful)
+#absolute GDP
+ggplot(gdp, aes(Year, PerCapGDP, color=Country, linetype=Country))+
+  geom_line()+scale_y_continuous(label=multiple_format(extra=dollar,multiple="M"))
+
+```
+
+Extract the data for the United states
+```{r}
+# get US data
+us <- gdp$PerCapGDP[gdp$Country == "United States"]
+us <- ts(us, start=min(gdp$Year), end = max(gdp$Year))
+us
+
+plot(us, ylab = "Per Capita GDP", xlab = "Year")
+```
+
+### Getting data
+Download the `AT&T` ticker data using the `quantmod` package.
+
+
+```{r}
+library("quantmod")  #Load the quantmod Library
+#getSymbols("YHOO",src="google") # from google finance
+getSymbols("GOOG",src="yahoo")  # from yahoo finance
+
+getSymbols("AMZN",src="yahoo")  # from yahoo finance
+# Specify lookup parameters, and save for future sessions.
+
+getSymbols("AAPL",src="yahoo")
+
+barChart(AAPL) 
+
+# Add multi-coloring and change background to white
+candleChart(AAPL,multi.col=TRUE,theme="white")  
+```
+
+
+
+```{r}
+library("quantmod")  #Load the quantmod Library
+stockData <- new.env() #Make a new environment for quantmod to store data in
+
+startDate = as.Date("2008-01-13") #Specify period of time we are interested in
+#endDate = as.Date("2010-01-12")
+endDate = as.Date("2017-10-30")
+
+tickers <- c("COST","ATT") #Define the tickers we are interested in
+
+#Download the stock history (for all tickers)
+getSymbols(tickers,env = stockData, src = "yahoo", from = startDate, to = endDate)
+
+#Use head to show first six rows of matrix
+head(stockData$COST)
+
+#Lets look at the just the closing prices
+Cl(stockData$COST[1:15])
+
+#Lets plot the data
+chartSeries(stockData$COST)
+
+#Lets add some bollinger bands to the plot (with period 50 & width 2 standard deviations)
+
+#?addBBands #Make R display the help documentation so we know what variables to pass to the function
+addBBands(n=50, sd=2)
+
+#Lets get the technical indicator values saved into a variable
+#Note must give it a single time series (I gave it the close price in this example)
+indicatorValuesBBands <- BBands(Cl(stockData$COST),n=50, sd=2)
+
+#Lets examine only a 1 month period of data
+COSTSubset<-  window(stockData$COST, start = as.Date("2017-10-01"), 
+# start = as.Date("2010-02-15"),                    
+                     end = as.Date("2017-10-30"))
+#as.Date("2010-03-15"))
+
+COSTSubset #Lets see the data
+
+#Lets extract a 1 month period of data for ATT but starting midway through the arm data
+ATTSubset<-  window(stockData$ATT, start = as.Date("2010-02-25"), end = as.Date("2010-03-25"))
+ATTSubset #Lets see the data
+
+#Now we want to get the intersection of the two subsets of data
+#this will gives us all the sets of data where the dates match
+#Its important to match the date series to stop spurious analysis of non-synchronised data
+#All=FALSE specifies the intersection as in don't include all dates in the merge
+COSTATTIntersection <- merge(COSTSubset, ATTSubset, all = FALSE)
+#subset(COSTATTIntersection,select = c("COST.Open","ATT.Open")) #Select the open columns and display
+```
